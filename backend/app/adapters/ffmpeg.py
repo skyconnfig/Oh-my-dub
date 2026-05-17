@@ -24,15 +24,21 @@ SUBTITLE_FONT_SIZES = {
     "en": {"portrait": 9, "landscape": 18},
 }
 
+SUBTITLE_SRC_FONT_SIZES = {
+    "zh": {"portrait": 10, "landscape": 20},
+    "en": {"portrait": 7, "landscape": 14},
+}
+
 
 def _subtitle_style(font: str, size: int, margin_v: int) -> str:
     return (
         f"FontName={font},"
         f"FontSize={size},"
-        "PrimaryColour=&H00FFFFFF,"
+        "PrimaryColour=&H0066D8FF,"  # 暖金 (warm golden #FFD866)
         "OutlineColour=&H00000000,"
         "BorderStyle=1,"
         "Outline=2,"
+        "Shadow=1,"
         "Alignment=2,"
         f"MarginV={margin_v}"
     )
@@ -177,7 +183,9 @@ def write_srt(translation_file: Path, session: Path) -> Path:
             continue
         cursor = start
         for fragment, duration in zip(fragments, _allocate_durations(fragments, end - start)):
-            lines.extend([str(idx), f"{_srt_time(cursor)} --> {_srt_time(cursor + duration)}", fragment, ""])
+            # Single translation line in warm golden — prominent and easy to read
+            text = f'<font color="#FFD866">{fragment}</font>'
+            lines.extend([str(idx), f"{_srt_time(cursor)} --> {_srt_time(cursor + duration)}", text, ""])
             cursor += duration
             idx += 1
     output_file.write_text("\n".join(lines), encoding="utf-8")
@@ -226,7 +234,7 @@ def get_video_orientation(video_file: Path) -> str:
 
 def subtitle_style_for_orientation(orientation: str, font: str, lang: str = "zh") -> str:
     sizes = SUBTITLE_FONT_SIZES.get(lang, SUBTITLE_FONT_SIZES["zh"])
-    margin_v = 70 if orientation == "portrait" else 5
+    margin_v = 65 if orientation == "portrait" else 30
     return _subtitle_style(font, size=sizes[orientation], margin_v=margin_v)
 
 
@@ -264,11 +272,13 @@ def merge_video(video_file: Path, dubbing_file: Path, bgm_file: Path, timings_fi
             "-i",
             str(bgm_file),
             "-filter_complex",
-            "[0:a]volume=1.0[a0];[1:a]volume=0.30[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]",
+            "[0:a]dynaudnorm=p=0.9:maxgain=15[a0];[1:a]volume=0.25[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]",
             "-map",
             "[aout]",
             "-c:a",
             "aac",
+            "-b:a",
+            "192k",
             str(mixed_audio),
         ],
         check=True,

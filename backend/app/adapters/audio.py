@@ -9,12 +9,14 @@ import soundfile as sf
 from audiostretchy.stretch import stretch_audio
 from pydub import AudioSegment
 
-BASE_FACTOR_MIN = 0.8
-BASE_FACTOR_MAX = 1.2
-BASE_FACTOR_SAFETY = 0.99
-LOCAL_FACTOR_MIN = 0.9
-LOCAL_FACTOR_MAX = 1.1
-SPEED_NOOP_EPSILON = 1e-2
+BASE_FACTOR_MIN = 0.85
+BASE_FACTOR_MAX = 1.15
+BASE_FACTOR_SAFETY = 0.98
+LOCAL_FACTOR_MIN = 0.92
+LOCAL_FACTOR_MAX = 1.08
+SPEED_NOOP_EPSILON = 2e-2
+CROSSFADE_MS = 30
+TARGET_RMS = 0.12
 
 
 def split_audio_by_translation(vocals_file: Path, translation_file: Path, session: Path) -> Path:
@@ -73,6 +75,47 @@ def _silence(seconds: float, sample_rate: int) -> np.ndarray:
     return np.zeros(int(seconds * sample_rate), dtype=np.float32)
 
 
+def _combine_with_crossfade(
+    segments: list[np.ndarray],
+    sample_rate: int,
+    crossfade_samples: int,
+) -> np.ndarray:
+    if len(segments) == 0:
+        return np.zeros(0, dtype=np.float32)
+    if len(segments) == 1:
+        return segments[0]
+
+    total_len = sum(len(s) for s in segments)
+    out = np.empty(total_len - crossfade_samples * (len(segments) - 1), dtype=np.float32)
+    pos = 0
+    out[: len(segments[0])] = segments[0]
+    pos += len(segments[0])
+    for i in range(1, len(segments)):
+        prev = segments[i - 1]
+        cur = segments[i]
+        fade_len = min(crossfade_samples, len(prev) // 4, len(cur) // 4)
+        if fade_len > 0:
+            overlap_prev = out[pos - fade_len : pos]
+            overlap_cur = cur[:fade_len]
+            fade_in = np.linspace(0, 1, fade_len, dtype=np.float32)
+            fade_out = np.linspace(1, 0, fade_len, dtype=np.float32)
+            out[pos - fade_len : pos] = overlap_prev * fade_out + overlap_cur * fade_in
+            out[pos : pos + len(cur) - fade_len] = cur[fade_len:]
+        else:
+            out[pos : pos + len(cur)] = cur
+        pos += len(cur) - fade_len
+    return out
+
+
+def _normalize_rms(audio: np.ndarray, target_rms: float) -> np.ndarray:
+    current_rms = np.sqrt(np.mean(audio**2))
+    if current_rms < 1e-6:
+        return audio
+    gain = target_rms / current_rms
+    gain = min(max(gain, 0.5), 3.0)
+    return audio * gain
+
+
 def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tuple[Path, Path]:
     dubbing_file = session / "tmp" / "audio_dubbing.wav"
     timings_file = session / "metadata" / "timings.json"
@@ -92,16 +135,16 @@ def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tup
 
     _, sample_rate = _audio_duration(tts_files[0])
     base = _base_speed_factor(translation, tts_files)
+    crossfade_samples = int(CROSSFADE_MS * sample_rate / 1000)
 
-    final_audio = np.zeros(0, dtype=np.float32)
+    final_segments: list[np.ndarray] = []
     last_end_ms = 0.0
     for segment, tts_file in zip(translation, tts_files):
-        last_end_ms = final_audio.shape[0] / sample_rate * 1000.0
-        real_start_ms = max(float(segment["start_time"]), last_end_ms)
-        if real_start_ms > last_end_ms:
-            final_audio = np.concatenate(
-                [final_audio, _silence((real_start_ms - last_end_ms) / 1000.0, sample_rate)]
-            )
+        current_pos_ms = sum(len(s) for s in final_segments) / sample_rate * 1000.0
+        real_start_ms = max(float(segment["start_time"]), current_pos_ms)
+        if real_start_ms > current_pos_ms:
+            silent_gap = real_start_ms - current_pos_ms
+            final_segments.append(_silence(silent_gap / 1000.0, sample_rate))
 
         current_sec, _ = _audio_duration(tts_file)
         desired_sec = (segment["end_time"] - real_start_ms) / 1000.0
@@ -111,11 +154,14 @@ def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tup
 
         adjusted_sec = len(y) / sample_rate
         real_end_ms = max(real_start_ms + adjusted_sec * 1000.0, float(segment["end_time"]))
-        final_audio = np.concatenate([final_audio, y])
+        final_segments.append(y)
         segment["actual_start_time"] = int(real_start_ms)
         segment["actual_end_time"] = int(real_end_ms)
 
-    sf.write(str(dubbing_file), final_audio, sample_rate)
+    raw_audio = _combine_with_crossfade(final_segments, sample_rate, crossfade_samples)
+    normalized = _normalize_rms(raw_audio, TARGET_RMS)
+
+    sf.write(str(dubbing_file), normalized, sample_rate)
     timings_file.write_text(
         json.dumps({"translation": translation}, ensure_ascii=False, indent=2),
         encoding="utf-8",
