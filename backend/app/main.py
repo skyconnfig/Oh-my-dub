@@ -47,6 +47,11 @@ class YtdlpSettingsUpdate(BaseModel):
     proxy_port: str = ""
 
 
+class TtsSettingsUpdate(BaseModel):
+    engine: str = "voxcpm"
+    gpt_sovits_api_url: str = ""
+
+
 def normalize_proxy_port(value: str) -> str:
     proxy_port = value.strip()
     if not proxy_port:
@@ -69,7 +74,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="YouDub API", lifespan=lifespan)
+app = FastAPI(title="OhMyDub API", lifespan=lifespan)
 
 
 DEFAULT_CORS_ORIGIN_REGEX = (
@@ -292,3 +297,14 @@ def get_ytdlp_settings() -> dict:
 def save_ytdlp_settings(payload: YtdlpSettingsUpdate) -> dict:
     database.save_ytdlp_settings(normalize_proxy_port(payload.proxy_port))
     return get_ytdlp_settings()
+
+
+@app.get("/api/settings/tts")
+def get_tts_settings() -> dict:
+    return database.get_tts_settings()
+
+
+@app.post("/api/settings/tts")
+def save_tts_settings(payload: TtsSettingsUpdate) -> dict:
+    database.save_tts_settings(payload.engine, payload.gpt_sovits_api_url)
+    return database.get_tts_settings()

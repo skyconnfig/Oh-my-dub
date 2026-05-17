@@ -7,9 +7,11 @@ import {
   getCookieInfo,
   getOpenAIModels,
   getOpenAISettings,
+  getTtsSettings,
   getYtdlpSettings,
   saveCookie,
   saveOpenAISettings,
+  saveTtsSettings,
   saveYtdlpSettings,
 } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -40,6 +42,8 @@ type SettingsForm = {
   model: string
   translateConcurrency: string
   proxyPort: string
+  engine: string
+  gptSovitsApiUrl: string
 }
 
 const SAVED_API_KEY_MASK = "********"
@@ -52,6 +56,8 @@ const defaultSettings: SettingsForm = {
   model: "gpt-4o-mini",
   translateConcurrency: "50",
   proxyPort: "",
+  engine: "voxcpm",
+  gptSovitsApiUrl: "http://localhost:9880",
 }
 
 function uniqueModels(models: string[]) {
@@ -71,8 +77,8 @@ export function SettingsDialog() {
 
   useEffect(() => {
     if (!open) return
-    Promise.all([getCookieInfo(), getOpenAISettings(), getYtdlpSettings()])
-      .then(([cookie, openai, ytdlp]) => {
+    Promise.all([getCookieInfo(), getOpenAISettings(), getYtdlpSettings(), getTtsSettings()])
+      .then(([cookie, openai, ytdlp, tts]) => {
         setSettings({
           cookie: cookie.exists ? SAVED_COOKIE_MASK : "",
           baseUrl: openai.base_url,
@@ -80,6 +86,8 @@ export function SettingsDialog() {
           model: openai.model,
           translateConcurrency: openai.translate_concurrency || "50",
           proxyPort: ytdlp.proxy_port,
+          engine: tts.engine,
+          gptSovitsApiUrl: tts.gpt_sovits_api_url,
         })
         setModelOptions(uniqueModels([openai.model]))
         setModelsLoaded(false)
@@ -103,6 +111,10 @@ export function SettingsDialog() {
         translate_concurrency: settings.translateConcurrency,
       })
       const ytdlp = await saveYtdlpSettings({ proxy_port: settings.proxyPort })
+      const tts = await saveTtsSettings({
+        engine: settings.engine,
+        gpt_sovits_api_url: settings.gptSovitsApiUrl,
+      })
       setMessage("Settings saved.")
       setSettings((current) => ({
         ...current,
@@ -110,6 +122,8 @@ export function SettingsDialog() {
         cookie: cookieDirty ? (cookie?.exists ? SAVED_COOKIE_MASK : "") : current.cookie,
         translateConcurrency: openai.translate_concurrency || current.translateConcurrency,
         proxyPort: ytdlp.proxy_port,
+        engine: tts.engine,
+        gptSovitsApiUrl: tts.gpt_sovits_api_url,
       }))
       setCookieDirty(false)
       setApiKeyDirty(false)
@@ -185,6 +199,39 @@ export function SettingsDialog() {
                   placeholder="7890"
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="engine">TTS engine</Label>
+                <Select
+                  value={settings.engine}
+                  onValueChange={(value) =>
+                    setSettings((current) => ({ ...current, engine: value }))
+                  }
+                >
+                  <SelectTrigger id="engine">
+                    <SelectValue placeholder="Select TTS engine" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="voxcpm">VoxCPM</SelectItem>
+                    <SelectItem value="gpt_sovits">GPT-SoVITS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {settings.engine === "gpt_sovits" ? (
+                <div className="grid gap-2">
+                  <Label htmlFor="gptSovitsApiUrl">GPT-SoVITS API URL</Label>
+                  <Input
+                    id="gptSovitsApiUrl"
+                    value={settings.gptSovitsApiUrl}
+                    onChange={(event) =>
+                      setSettings((current) => ({ ...current, gptSovitsApiUrl: event.target.value }))
+                    }
+                    placeholder="http://localhost:9880"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The api_v2.py endpoint. Start with: python api_v2.py -a 127.0.0.1 -p 9880
+                  </p>
+                </div>
+              ) : null}
               <div className="grid gap-2">
                 <Label htmlFor="baseUrl">OpenAI base URL</Label>
                 <Input

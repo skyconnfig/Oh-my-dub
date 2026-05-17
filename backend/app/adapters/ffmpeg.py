@@ -15,7 +15,7 @@ SUBTITLE_DURATION_FLOOR_MS = 600
 
 
 SUBTITLE_FONTS = {
-    "zh": "Noto Sans CJK SC",
+    "zh": "Microsoft YaHei UI",
     "en": "Arial",
 }
 
@@ -230,12 +230,18 @@ def subtitle_style_for_orientation(orientation: str, font: str, lang: str = "zh"
     return _subtitle_style(font, size=sizes[orientation], margin_v=margin_v)
 
 
-def subtitle_filter(video_file: Path, subtitle_file: Path) -> str:
+def _escape_ass_style(style: str) -> str:
+    """Escape commas and other special chars for ffmpeg filter graph force_style."""
+    return style.replace("\\", "\\\\").replace(",", "\\,").replace("&", "\\&")
+
+
+def subtitle_filter(video_file: Path, subtitle_file: Path) -> tuple[str, Path | None]:
     lang = subtitle_file.stem.rsplit(".", 1)[-1]
     font = SUBTITLE_FONTS.get(lang, "Arial")
     style = subtitle_style_for_orientation(get_video_orientation(video_file), font, lang)
-    sub_path = subtitle_file.as_posix()
-    return f"subtitles=filename='{sub_path}':force_style='{style}'"
+    # Use filename only — ffmpeg will be run from the subtitle directory
+    sub_rel = subtitle_file.name
+    return f"subtitles={sub_rel}:force_style={_escape_ass_style(style)}", subtitle_file.parent
 
 
 def merge_video(video_file: Path, dubbing_file: Path, bgm_file: Path, timings_file: Path, session: Path) -> Path:
@@ -267,6 +273,7 @@ def merge_video(video_file: Path, dubbing_file: Path, bgm_file: Path, timings_fi
         ],
         check=True,
     )
+    sub_filter, sub_cwd = subtitle_filter(video_file, subtitles)
     subprocess.run(
         [
             "ffmpeg",
@@ -276,7 +283,7 @@ def merge_video(video_file: Path, dubbing_file: Path, bgm_file: Path, timings_fi
             "-i",
             str(mixed_audio),
             "-vf",
-            subtitle_filter(video_file, subtitles),
+            sub_filter,
             "-map",
             "0:v:0",
             "-map",
@@ -295,5 +302,6 @@ def merge_video(video_file: Path, dubbing_file: Path, bgm_file: Path, timings_fi
             str(final_video),
         ],
         check=True,
+        cwd=sub_cwd,
     )
     return final_video

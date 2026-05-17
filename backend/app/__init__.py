@@ -1,2 +1,2 @@
-"""YouDub FastAPI backend."""
+"""OhMyDub FastAPI backend."""
 

@@ -99,6 +99,24 @@ def _remove_partial_outputs(video_file: Path) -> None:
             candidate.unlink(missing_ok=True)
 
 
+def _find_cached_session(workfolder: Path, video_id: str) -> list[Path]:
+    if not workfolder.is_dir():
+        return []
+    sessions = []
+    for sub in workfolder.iterdir():
+        if not sub.is_dir():
+            continue
+        for session_dir in sub.iterdir():
+            if not session_dir.is_dir():
+                continue
+            if f"__{video_id}" in session_dir.name:
+                metadata_file = session_dir / "metadata" / "ytdlp_info.json"
+                video_file = session_dir / "media" / "video_source.mp4"
+                if metadata_file.exists() and video_file.exists() and video_file.stat().st_size > 0:
+                    sessions.append(session_dir)
+    return sessions
+
+
 def _download_with_format_candidates(
     url: str, video_file: Path, source: SourceConfig, proxy_port: str
 ) -> None:
@@ -129,6 +147,17 @@ def download_video(
     url: str, workfolder: Path, source: SourceConfig, proxy_port: str = ""
 ) -> tuple[Path, dict[str, Any]]:
     video_id = extract_video_id(url)
+
+    # Fast path: if video already downloaded and metadata cached, skip yt-dlp entirely.
+    candidate_sessions = _find_cached_session(workfolder, video_id)
+    if candidate_sessions:
+        session = candidate_sessions[0]
+        video_file = session / "media" / "video_source.mp4"
+        metadata_file = session / "metadata" / "ytdlp_info.json"
+        if video_file.exists() and video_file.stat().st_size > 0:
+            info = json.loads(metadata_file.read_text(encoding="utf-8"))
+            return session, info
+
     _ensure_cookie(source)
     info_opts = _ydl_base(source, proxy_port)
     with yt_dlp.YoutubeDL(info_opts) as ydl:

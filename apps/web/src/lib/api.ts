@@ -58,6 +58,11 @@ export type YtdlpSettings = {
   proxy_port: string
 }
 
+export type TtsSettings = {
+  engine: string
+  gpt_sovits_api_url: string
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -172,6 +177,17 @@ export function getYtdlpSettings() {
 
 export function saveYtdlpSettings(settings: YtdlpSettings) {
   return request<YtdlpSettings>("/api/settings/ytdlp", {
+    method: "POST",
+    body: JSON.stringify(settings),
+  })
+}
+
+export function getTtsSettings() {
+  return request<TtsSettings>("/api/settings/tts")
+}
+
+export function saveTtsSettings(settings: TtsSettings) {
+  return request<TtsSettings>("/api/settings/tts", {
     method: "POST",
     body: JSON.stringify(settings),
   })

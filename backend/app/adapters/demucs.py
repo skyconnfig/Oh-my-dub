@@ -32,7 +32,7 @@ def separate_audio(video_file: Path, session: Path) -> tuple[Path, Path]:
     if vocals_file.exists() and bgm_file.exists():
         return vocals_file, bgm_file
 
-    separator = Separator(model="htdemucs_ft", device=_device(), progress=True, shifts=3)
+    separator = Separator(model="htdemucs", device=_device(), progress=True, shifts=0)
     _, separated = separator.separate_audio_file(str(video_file))
 
     vocals = separated["vocals"]

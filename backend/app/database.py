@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .config import DB_PATH, ensure_runtime_dirs, openai_defaults, ytdlp_defaults
-from .stages import STAGES
+from .config import DB_PATH, ensure_runtime_dirs, openai_defaults, tts_engine, ytdlp_defaults
+from .stages import get_stages
 
 
 ACTIVE_STATUSES = ("queued", "running")
@@ -126,20 +127,21 @@ def fail_stale_active_tasks() -> None:
 def create_task(url: str, task_id: str | None = None) -> str:
     new_id = task_id or str(uuid.uuid4())
     created_at = now_iso()
+    stages = get_stages()
     with connect() as conn:
         conn.execute(
             """
             INSERT INTO tasks (id, url, status, current_stage, created_at)
             VALUES (?, ?, 'queued', ?, ?)
             """,
-            (new_id, url, STAGES[0].name, created_at),
+            (new_id, url, stages[0].name, created_at),
         )
         conn.executemany(
             """
             INSERT INTO task_stages (task_id, name, label, status)
             VALUES (?, ?, ?, 'pending')
             """,
-            [(new_id, stage.name, stage.label) for stage in STAGES],
+            [(new_id, stage.name, stage.label) for stage in stages],
         )
     return new_id
 
@@ -313,6 +315,19 @@ def get_ytdlp_settings() -> dict[str, str]:
 
 def save_ytdlp_settings(proxy_port: str) -> None:
     set_setting("ytdlp.proxy_port", proxy_port.strip())
+
+
+def get_tts_settings() -> dict[str, str]:
+    return {
+        "engine": get_setting("tts.engine", tts_engine()),
+        "gpt_sovits_api_url": get_setting("tts.gpt_sovits_api_url", os.getenv("GPT_SOVITS_API_URL", "http://localhost:9880")),
+    }
+
+
+def save_tts_settings(engine: str, gpt_sovits_api_url: str = "") -> None:
+    set_setting("tts.engine", engine.strip().lower())
+    if gpt_sovits_api_url.strip():
+        set_setting("tts.gpt_sovits_api_url", gpt_sovits_api_url.strip())
 
 
 def log_path(task_id: str) -> Path:

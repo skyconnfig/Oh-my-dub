@@ -157,9 +157,12 @@ cython_debug/
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
+
+ffmpeg-*/
+
+# CC-Panes workspace history
+.ccpanes/history/
 
 playground/
 models/
@@ -171,7 +174,7 @@ get_upload_link.txt
 launch.json
 remove_mp4.py
 
-# YouDub full-stack runtime data
+# OhMyDub full-stack runtime data
 data/
 workfolder/
 env.txt

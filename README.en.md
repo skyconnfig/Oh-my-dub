@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="apps/web/public/youdub-logo.svg" alt="YouDub" width="520" />
+  <img src="apps/web/public/ohmy-dub-logo.svg" alt="OhMyDub" width="520" />
 </p>
 
-# YouDub WebUI
+# OhMyDub WebUI
 
 An open-source video localization tool proven in a real creator workflow.
 
-YouDub WebUI turns a single YouTube or Bilibili video into a dubbed video in the target language. It downloads the source video, separates vocals from background audio, transcribes speech, translates the transcript, generates new voiceover, mixes audio, burns subtitles, and produces a final video that can be played or downloaded from the web UI.
+OhMyDub WebUI turns a single YouTube or Bilibili video into a dubbed video in the target language. It downloads the source video, separates vocals from background audio, transcribes speech, translates the transcript, generates new voiceover, mixes audio, burns subtitles, and produces a final video that can be played or downloaded from the web UI.
 
 The most mature path is **YouTube English -> Chinese dubbing**. The app also supports **Bilibili Chinese -> English dubbing** through the same task pipeline.
 
@@ -14,9 +14,9 @@ The most mature path is **YouTube English -> Chinese dubbing**. The app also sup
 
 ## Proven Creator Workflow
 
-**Author's Bilibili channel**: [黑纹白斑马](https://space.bilibili.com/1263732318) — 800K+ followers, 20K+ videos. The whole channel is translated and dubbed with YouDub WebUI, covering technology, games, science, animals, history, and more.
+**Author's Bilibili channel**: [黑纹白斑马](https://space.bilibili.com/1263732318) — 800K+ followers, 20K+ videos. The whole channel is translated and dubbed with OhMyDub WebUI, covering technology, games, science, animals, history, and more.
 
-This is not just a demo runner. YouDub WebUI is built for creators, developers, and small teams who want to own a complete local video-localization pipeline while keeping the system simple enough to inspect, debug, and modify.
+This is not just a demo runner. OhMyDub WebUI is built for creators, developers, and small teams who want to own a complete local video-localization pipeline while keeping the system simple enough to inspect, debug, and modify.
 
 ## Demo
 
@@ -44,7 +44,7 @@ https://github.com/user-attachments/assets/bf01f912-eec8-4e0d-8698-0f69283a73e7
 
 ### 2. How much YT paid me for 129 million shorts views
 
-[YouTube source](https://www.youtube.com/watch?v=ii9Kh4XkA5g) · Long-form landscape video · English -> Chinese · The embedded clip shows the first 40 seconds; the full version is available in the [`demo-assets`](https://github.com/liuzhao1225/YouDub-webui/releases/tag/demo-assets) Release
+[YouTube source](https://www.youtube.com/watch?v=ii9Kh4XkA5g) · Long-form landscape video · English -> Chinese · The embedded clip shows the first 40 seconds; the full version is available in the [`demo-assets`](https://github.com/liuzhao1225/OhMyDub-webui/releases/tag/demo-assets) Release
 
 <table>
 <tr><th>Original English</th><th>Chinese dubbed</th></tr>
@@ -81,8 +81,8 @@ The first run may download or load large ASR, TTS, and audio-processing models. 
 ### 2. Clone
 
 ```bash
-git clone https://github.com/liuzhao1225/YouDub-webui.git
-cd YouDub-webui
+git clone https://github.com/liuzhao1225/OhMyDub-webui.git
+cd OhMyDub-webui
 git submodule update --init --recursive
 ```
 
@@ -241,7 +241,7 @@ submodule/demucs/  Demucs source submodule
 
 ## Project Status and Contributing
 
-YouDub WebUI is still an MVP, but it already supports a real creator's daily video-localization workflow. The current priority is to keep the shortest end-to-end path stable, keep the architecture readable, and make the project easy to run and modify.
+OhMyDub WebUI is still an MVP, but it already supports a real creator's daily video-localization workflow. The current priority is to keep the shortest end-to-end path stable, keep the architecture readable, and make the project easy to run and modify.
 
 Contributions are welcome:
 
@@ -256,10 +256,10 @@ If this project is useful to you, please Star it, Fork it, open Issues or PRs, a
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=liuzhao1225%2FYouDub-webui&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=liuzhao1225%2FOhMyDub-webui&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/YouDub-webui&type=date&theme=dark&legend=bottom-right" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/YouDub-webui&type=date&legend=bottom-right" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liuzhao1225/YouDub-webui&type=date&legend=bottom-right" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/OhMyDub-webui&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/OhMyDub-webui&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liuzhao1225/OhMyDub-webui&type=date&legend=bottom-right" />
  </picture>
 </a>

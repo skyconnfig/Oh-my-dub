@@ -62,6 +62,7 @@ def recognize_speech(vocals_file: Path, session: Path, language: str) -> Path:
         language=language,
         word_timestamps=True,
         verbose=False,
+        fp16=True,
     )
 
     utterances = _convert_segments(result.get("segments", []))

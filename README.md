@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="apps/web/public/youdub-logo.svg" alt="YouDub" width="520" />
+  <img src="apps/web/public/ohmy-dub-logo.svg" alt="OhMyDub" width="520" />
 </p>
 
-# YouDub WebUI
+# OhMyDub WebUI
 
 一个被真实创作者工作流验证过的开源视频本地化工具。
 
-YouDub WebUI 可以把单个 YouTube 或 Bilibili 视频自动转换成目标语言配音版：下载视频、分离人声与背景音、识别字幕、翻译、生成配音、混音、压制字幕，最后输出可在线播放和下载的新视频。
+OhMyDub WebUI 可以把单个 YouTube 或 Bilibili 视频自动转换成目标语言配音版：下载视频、分离人声与背景音、识别字幕、翻译、生成配音、混音、压制字幕，最后输出可在线播放和下载的新视频。
 
 核心成熟场景是 **YouTube 英文 -> 中文配音**；同时已经支持 **Bilibili 中文 -> 英文配音**。
 
@@ -14,9 +14,9 @@ English README: [README.en.md](README.en.md)
 
 ## 真实生产案例
 
-**作者的 B 站频道**：[黑纹白斑马](https://space.bilibili.com/1263732318)（粉丝 80 万+，视频 2 万+）的全站作品均使用 YouDub WebUI 自动翻译配音，覆盖科技、游戏、科普、动物、历史等题材。
+**作者的 B 站频道**：[黑纹白斑马](https://space.bilibili.com/1263732318)（粉丝 80 万+，视频 2 万+）的全站作品均使用 OhMyDub WebUI 自动翻译配音，覆盖科技、游戏、科普、动物、历史等题材。
 
-这不是一个只跑过 demo 的玩具项目。YouDub WebUI 的目标很明确：让个人创作者、开发者和小团队能够在本地掌控一条完整的视频本地化流水线，并且保留足够简单的架构，方便理解、调试和二次开发。
+这不是一个只跑过 demo 的玩具项目。OhMyDub WebUI 的目标很明确：让个人创作者、开发者和小团队能够在本地掌控一条完整的视频本地化流水线，并且保留足够简单的架构，方便理解、调试和二次开发。
 
 ## 效果示例
 
@@ -44,7 +44,7 @@ https://github.com/user-attachments/assets/bf01f912-eec8-4e0d-8698-0f69283a73e7
 
 ### 2. How much YT paid me for 129 million shorts views
 
-[原视频链接](https://www.youtube.com/watch?v=ii9Kh4XkA5g) · YouTube 横屏长视频 · 英文 -> 中文 · 下方为开头 40 秒切片，完整版可在 [`demo-assets`](https://github.com/liuzhao1225/YouDub-webui/releases/tag/demo-assets) Release 下载
+[原视频链接](https://www.youtube.com/watch?v=ii9Kh4XkA5g) · YouTube 横屏长视频 · 英文 -> 中文 · 下方为开头 40 秒切片，完整版可在 [`demo-assets`](https://github.com/liuzhao1225/OhMyDub-webui/releases/tag/demo-assets) Release 下载
 
 <table>
 <tr><th>原始英文</th><th>中文配音版</th></tr>
@@ -81,8 +81,8 @@ https://github.com/user-attachments/assets/158de60a-7de4-4ddf-b3d8-478d0423aee6
 ### 2. 克隆项目
 
 ```bash
-git clone https://github.com/liuzhao1225/YouDub-webui.git
-cd YouDub-webui
+git clone https://github.com/liuzhao1225/OhMyDub-webui.git
+cd OhMyDub-webui
 git submodule update --init --recursive
 ```
 
@@ -241,7 +241,7 @@ submodule/demucs/  Demucs 源码子模块
 
 ## 项目状态与贡献
 
-YouDub WebUI 仍然是 MVP，但已经可以支撑真实创作者的日常视频本地化生产。当前优先级是保持最短链路稳定、保持架构简单，并让更多人能跑起来、改得动。
+OhMyDub WebUI 仍然是 MVP，但已经可以支撑真实创作者的日常视频本地化生产。当前优先级是保持最短链路稳定、保持架构简单，并让更多人能跑起来、改得动。
 
 欢迎贡献：
 
@@ -256,10 +256,10 @@ YouDub WebUI 仍然是 MVP，但已经可以支撑真实创作者的日常视频
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=liuzhao1225%2FYouDub-webui&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=liuzhao1225%2FOhMyDub-webui&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/YouDub-webui&type=date&theme=dark&legend=bottom-right" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/YouDub-webui&type=date&legend=bottom-right" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liuzhao1225/YouDub-webui&type=date&legend=bottom-right" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/OhMyDub-webui&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=liuzhao1225/OhMyDub-webui&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=liuzhao1225/OhMyDub-webui&type=date&legend=bottom-right" />
  </picture>
 </a>

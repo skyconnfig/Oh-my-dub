@@ -23,8 +23,8 @@ export function AppHeader({ backHref }: { backHref?: string }) {
         <Link href="/" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/youdub-logo.svg"
-            alt="YouDub"
+            src="/ohmy-dub-logo.svg"
+            alt="OhMyDub"
             className="h-9 w-auto sm:h-11"
           />
         </Link>

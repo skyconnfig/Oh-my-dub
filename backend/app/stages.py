@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .config import tts_engine, tts_engine_label
+
 
 @dataclass(frozen=True)
 class StageSpec:
@@ -9,18 +11,20 @@ class StageSpec:
     label: str
 
 
-STAGES: tuple[StageSpec, ...] = (
-    StageSpec("download", "Download"),
-    StageSpec("separate", "Demucs"),
-    StageSpec("asr", "Whisper"),
-    StageSpec("asr_fix", "Split sentences"),
-    StageSpec("translate", "Translate"),
-    StageSpec("split_audio", "Split audio"),
-    StageSpec("tts", "VoxCPM"),
-    StageSpec("merge_audio", "Merge audio"),
-    StageSpec("merge_video", "Merge video"),
-)
+def get_stages() -> tuple[StageSpec, ...]:
+    engine = tts_engine()
+    return (
+        StageSpec("download", "Download"),
+        StageSpec("separate", "Demucs"),
+        StageSpec("asr", "Whisper"),
+        StageSpec("asr_fix", "Split sentences"),
+        StageSpec("translate", "Translate"),
+        StageSpec("split_audio", "Split audio"),
+        StageSpec("tts", tts_engine_label(engine)),
+        StageSpec("merge_audio", "Merge audio"),
+        StageSpec("merge_video", "Merge video"),
+    )
 
 
+STAGES: tuple[StageSpec, ...] = get_stages()
 STAGE_NAMES = tuple(stage.name for stage in STAGES)
-

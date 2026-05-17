@@ -69,6 +69,7 @@ class PipelineRunner:
         try:
             for stage in STAGES:
                 self._run_stage(stage.name)
+                self._clear_gpu_cache()
             database.update_task(
                 self.task_id,
                 status="succeeded",
@@ -100,6 +101,16 @@ class PipelineRunner:
 
     def log(self, message: str) -> None:
         _write_log(self.task_id, message)
+
+    @staticmethod
+    def _clear_gpu_cache() -> None:
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
 
     def stage_message(self, stage: str, message: str) -> None:
         database.update_stage(self.task_id, stage, last_message=message)
@@ -216,8 +227,12 @@ class PipelineRunner:
         self.artifacts.vocals_dir = split_audio_by_translation(vocals_file, translation_file, session)
         self.stage_message("split_audio", "Created vocal reference segments")
 
-    def _tts(self, _: dict) -> None:
-        from .adapters.voxcpm import generate_tts
+    def _tts(self, task: dict) -> None:
+        engine = database.get_tts_settings()["engine"]
+        if engine == "gpt_sovits":
+            from .adapters.gpt_sovits import generate_tts
+        else:
+            from .adapters.voxcpm import generate_tts
 
         session = _require(self.artifacts.session, "session")
         translation_file = _require(self.artifacts.translation_file, "translation_file")
