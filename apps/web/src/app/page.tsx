@@ -11,6 +11,7 @@ import {
   listTasks,
 } from "@/lib/api"
 import { statusBadgeClass } from "@/lib/status"
+import { useTranslation } from "@/lib/i18n"
 import { AppHeader } from "@/components/app-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,6 +46,7 @@ function activeCount(tasks: TaskSummary[]) {
 
 export default function Home() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [youtubeUrl, setYoutubeUrl] = useState("")
   const [bilibiliUrl, setBilibiliUrl] = useState("")
   const [tasks, setTasks] = useState<TaskSummary[]>([])
@@ -93,12 +95,12 @@ export default function Home() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Create new task</CardTitle>
+            <CardTitle>{t("home.createTask")}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={submitTask} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="youtube-url">YouTube URL (English → Chinese)</Label>
+                <Label htmlFor="youtube-url">{t("home.youtubeLabel")}</Label>
                 <Input
                   id="youtube-url"
                   value={youtubeUrl}
@@ -108,7 +110,7 @@ export default function Home() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bilibili-url">Bilibili URL (Chinese → English)</Label>
+                <Label htmlFor="bilibili-url">{t("home.bilibiliLabel")}</Label>
                 <Input
                   id="bilibili-url"
                   value={bilibiliUrl}
@@ -120,14 +122,14 @@ export default function Home() {
               <div className="flex items-center justify-between gap-3">
                 {queued > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    {queued} task{queued > 1 ? "s" : ""} queued / running
+                    {queued} {t("home.queuedRunning")}
                   </p>
                 ) : (
                   <span />
                 )}
                 <Button type="submit" disabled={!canSubmit}>
                   <Play className="size-4" />
-                  {submitting ? "Submitting" : "Create task"}
+                  {submitting ? t("home.submitting") : t("home.create")}
                 </Button>
               </div>
             </form>
@@ -142,12 +144,12 @@ export default function Home() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Task history ({tasks.length})</CardTitle>
+            <CardTitle>{t("home.taskHistory")} ({tasks.length})</CardTitle>
           </CardHeader>
           <CardContent className="px-0">
             {tasks.length === 0 ? (
               <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                No tasks yet. Submit a YouTube or Bilibili URL above to start.
+                {t("home.noTasks")}
               </div>
             ) : (
               <ScrollArea className="max-h-[70dvh]">

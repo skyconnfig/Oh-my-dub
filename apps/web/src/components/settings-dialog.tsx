@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react"
 import { Eye, EyeOff, RefreshCw, Settings } from "lucide-react"
 
+import { useTranslation } from "@/lib/i18n"
 import {
   getCookieInfo,
   getOpenAIModels,
@@ -65,6 +66,7 @@ function uniqueModels(models: string[]) {
 }
 
 export function SettingsDialog() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [settings, setSettings] = useState(defaultSettings)
   const [message, setMessage] = useState("")
@@ -94,10 +96,10 @@ export function SettingsDialog() {
         setShowApiKey(false)
         setCookieDirty(false)
         setApiKeyDirty(false)
-        setMessage(openai.has_api_key ? "OpenAI key is saved." : "")
+        setMessage(openai.has_api_key ? t("settings.keySaved") : "")
       })
       .catch((err) => setMessage(err.message))
-  }, [open])
+  }, [open, t])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -115,7 +117,7 @@ export function SettingsDialog() {
         engine: settings.engine,
         gpt_sovits_api_url: settings.gptSovitsApiUrl,
       })
-      setMessage("Settings saved.")
+      setMessage(t("settings.saved"))
       setSettings((current) => ({
         ...current,
         apiKey: openai.has_api_key ? openai.api_key || SAVED_API_KEY_MASK : "",
@@ -144,7 +146,7 @@ export function SettingsDialog() {
       setModelOptions(models)
       setModelsLoaded(true)
       setSettings((current) => ({ ...current, model: current.model || models[0] || "" }))
-      setMessage(models.length ? `${models.length} models loaded.` : "No models returned.")
+      setMessage(models.length ? `${models.length} ${t("settings.modelsLoaded")}` : t("settings.noModels"))
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to load models")
     } finally {
@@ -156,18 +158,18 @@ export function SettingsDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" />}>
         <Settings className="size-4" />
-        Settings
+        {t("nav.settings")}
       </DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-w-2xl">
         <form onSubmit={submit} className="flex max-h-[calc(100dvh-4rem)] min-h-0 flex-col">
           <DialogHeader className="shrink-0 pr-8">
-            <DialogTitle>Runtime settings</DialogTitle>
-            <DialogDescription>Stored locally by the FastAPI backend.</DialogDescription>
+            <DialogTitle>{t("settings.title")}</DialogTitle>
+            <DialogDescription>{t("settings.description")}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 min-h-0 overflow-y-auto pr-1">
             <div className="grid gap-4 pb-4">
               <div className="grid gap-2">
-                <Label htmlFor="cookie">YouTube cookie</Label>
+                <Label htmlFor="cookie">{t("settings.youtubeCookie")}</Label>
                 <Textarea
                   id="cookie"
                   value={settings.cookie}
@@ -183,12 +185,12 @@ export function SettingsDialog() {
                       cookie: event.target.value.replace(SAVED_COOKIE_MASK, ""),
                     }))
                   }}
-                  placeholder="Paste Netscape cookie content"
+                  placeholder={t("settings.cookiePlaceholder")}
                   className="min-h-44 max-h-[42dvh] overflow-auto font-mono text-xs leading-relaxed"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="proxyPort">yt-dlp proxy port</Label>
+                <Label htmlFor="proxyPort">{t("settings.proxyPort")}</Label>
                 <Input
                   id="proxyPort"
                   inputMode="numeric"
@@ -196,44 +198,44 @@ export function SettingsDialog() {
                   onChange={(event) =>
                     setSettings((current) => ({ ...current, proxyPort: event.target.value }))
                   }
-                  placeholder="7890"
+                  placeholder={t("settings.proxyPortPlaceholder")}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="engine">TTS engine</Label>
+                <Label htmlFor="engine">{t("settings.ttsEngine")}</Label>
                 <Select
                   value={settings.engine}
                   onValueChange={(value) =>
-                    setSettings((current) => ({ ...current, engine: value }))
+                    setSettings((current) => ({ ...current, engine: value || current.engine }))
                   }
                 >
                   <SelectTrigger id="engine">
-                    <SelectValue placeholder="Select TTS engine" />
+                    <SelectValue placeholder={t("settings.ttsEngine")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="voxcpm">VoxCPM</SelectItem>
-                    <SelectItem value="gpt_sovits">GPT-SoVITS</SelectItem>
+                    <SelectItem value="voxcpm">{t("settings.ttsVoxCpm")}</SelectItem>
+                    <SelectItem value="gpt_sovits">{t("settings.ttsGptSovits")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {settings.engine === "gpt_sovits" ? (
                 <div className="grid gap-2">
-                  <Label htmlFor="gptSovitsApiUrl">GPT-SoVITS API URL</Label>
+                  <Label htmlFor="gptSovitsApiUrl">{t("settings.gptSovitsUrl")}</Label>
                   <Input
                     id="gptSovitsApiUrl"
                     value={settings.gptSovitsApiUrl}
                     onChange={(event) =>
                       setSettings((current) => ({ ...current, gptSovitsApiUrl: event.target.value }))
                     }
-                    placeholder="http://localhost:9880"
+                    placeholder={t("settings.gptSovitsUrlPlaceholder")}
                   />
                   <p className="text-xs text-muted-foreground">
-                    The api_v2.py endpoint. Start with: python api_v2.py -a 127.0.0.1 -p 9880
+                    {t("settings.gptSovitsHint")}
                   </p>
                 </div>
               ) : null}
               <div className="grid gap-2">
-                <Label htmlFor="baseUrl">OpenAI base URL</Label>
+                <Label htmlFor="baseUrl">{t("settings.baseUrl")}</Label>
                 <Input
                   id="baseUrl"
                   value={settings.baseUrl}
@@ -243,7 +245,7 @@ export function SettingsDialog() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="apiKey">OpenAI API key</Label>
+                <Label htmlFor="apiKey">{t("settings.apiKey")}</Label>
                 <div className="relative">
                   <Input
                     id="apiKey"
@@ -261,7 +263,7 @@ export function SettingsDialog() {
                         apiKey: event.target.value.replace(SAVED_API_KEY_MASK, ""),
                       }))
                     }}
-                    placeholder="Leave blank to keep existing key"
+                    placeholder={t("settings.apiKeyPlaceholder")}
                     className="pr-9"
                   />
                   <Button
@@ -272,13 +274,13 @@ export function SettingsDialog() {
                     onClick={() => setShowApiKey((current) => !current)}
                   >
                     {showApiKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    <span className="sr-only">{showApiKey ? "Hide API key" : "Show API key"}</span>
+                    <span className="sr-only">{showApiKey ? t("settings.hideKey") : t("settings.showKey")}</span>
                   </Button>
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                 <div className="grid gap-2">
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor="model">{t("settings.model")}</Label>
                   {modelsLoaded && modelOptions.length > 0 ? (
                     <Select
                       value={settings.model}
@@ -287,7 +289,7 @@ export function SettingsDialog() {
                       }
                     >
                       <SelectTrigger id="model">
-                        <SelectValue placeholder="Select model" />
+                        <SelectValue placeholder={t("settings.model")} />
                       </SelectTrigger>
                       <SelectContent>
                         {modelOptions.map((model) => (
@@ -315,12 +317,12 @@ export function SettingsDialog() {
                     disabled={modelsLoading || !settings.baseUrl.trim()}
                   >
                     <RefreshCw className="size-4" />
-                    {modelsLoading ? "Loading" : "Get models"}
+                    {modelsLoading ? t("settings.loading") : t("settings.getModels")}
                   </Button>
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="translateConcurrency">Translate concurrency</Label>
+                <Label htmlFor="translateConcurrency">{t("settings.translateConcurrency")}</Label>
                 <Input
                   id="translateConcurrency"
                   inputMode="numeric"
@@ -334,14 +336,14 @@ export function SettingsDialog() {
                   placeholder="50"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Parallel OpenAI requests during the translate stage. Increase if your provider allows it.
+                  {t("settings.concurrencyHint")}
                 </p>
               </div>
               {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
             </div>
           </div>
           <DialogFooter className="shrink-0">
-            <Button type="submit">Save settings</Button>
+            <Button type="submit">{t("settings.save")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

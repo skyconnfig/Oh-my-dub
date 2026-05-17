@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SettingsDialog } from "@/components/settings-dialog"
+import { LanguageSwitcher } from "@/components/language-switcher"
 
 export function AppHeader({ backHref }: { backHref?: string }) {
   return (
@@ -29,7 +30,10 @@ export function AppHeader({ backHref }: { backHref?: string }) {
           />
         </Link>
       </div>
-      <SettingsDialog />
+      <div className="flex items-center gap-2">
+        <LanguageSwitcher />
+        <SettingsDialog />
+      </div>
     </header>
   )
 }
