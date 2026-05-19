@@ -30,6 +30,8 @@ export type TranslationKey =
   | "settings.ttsEngine"
   | "settings.ttsVoxCpm"
   | "settings.ttsGptSovits"
+  | "settings.ttsIndexTts"
+  | "settings.ttsCosyVoice"
   | "settings.gptSovitsUrl"
   | "settings.gptSovitsUrlPlaceholder"
   | "settings.gptSovitsHint"
@@ -131,6 +133,8 @@ export const translations: Record<TranslationKey, Record<Lang, string>> = {
   "settings.ttsEngine": { zh: "TTS 引擎", en: "TTS engine" },
   "settings.ttsVoxCpm": { zh: "VoxCPM", en: "VoxCPM" },
   "settings.ttsGptSovits": { zh: "GPT-SoVITS", en: "GPT-SoVITS" },
+  "settings.ttsIndexTts": { zh: "IndexTTS-2", en: "IndexTTS-2" },
+  "settings.ttsCosyVoice": { zh: "CosyVoice2", en: "CosyVoice2" },
   "settings.gptSovitsUrl": { zh: "GPT-SoVITS API 地址", en: "GPT-SoVITS API URL" },
   "settings.gptSovitsUrlPlaceholder": { zh: "http://localhost:9880", en: "http://localhost:9880" },
   "settings.gptSovitsHint": { zh: "api_v2.py 端点。启动方式：python api_v2.py -a 127.0.0.1 -p 9880", en: "The api_v2.py endpoint. Start with: python api_v2.py -a 127.0.0.1 -p 9880" },

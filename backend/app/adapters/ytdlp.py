@@ -16,15 +16,29 @@ from ..youtube import extract_video_id
 
 
 FORMAT_CANDIDATES = (
-    "bestvideo[height<=1080]+bestaudio/best",
+    "bestvideo[height<=1080]+bestaudio/bestvideo*[height<=1080]+bestaudio/best",
     "bestvideo+bestaudio/best",
     "bv*+ba/b",
     "best",
 )
 
+SIGN_IN_ERRORS = (
+    "Sign in to confirm",
+    "Requested format is not available",
+    "bot",
+    "login",
+    "Please sign in",
+)
+
+DEFAULT_EXTRACTOR_ARGS = {
+    "youtube": {
+        "skip": ["dash", "hls"],  # skip DASH/HLS manifest check to avoid bot detection
+    },
+}
+
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
 
@@ -66,7 +80,13 @@ def _ydl_base(source: SourceConfig, proxy_port: str = "") -> dict[str, Any]:
         "quiet": True,
         "no_warnings": True,
         "js_runtimes": {"node": {}},
-        "http_headers": {"User-Agent": DEFAULT_USER_AGENT},
+        "http_headers": {
+            "User-Agent": DEFAULT_USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        },
+        "extractor_args": DEFAULT_EXTRACTOR_ARGS,
+        "extractor_retries": 5,
     }
     cookie_path = source.cookie_path
     if cookie_path and cookie_path.exists() and cookie_path.stat().st_size > 0:
@@ -87,8 +107,9 @@ def _session_path(workfolder: Path, info: dict[str, Any]) -> Path:
     return workfolder / uploader / f"{title}__{video_id}"
 
 
-def _is_format_unavailable(exc: Exception) -> bool:
-    return "Requested format is not available" in str(exc)
+def _is_sign_in_required(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return any(err.lower() in msg for err in SIGN_IN_ERRORS)
 
 
 def _remove_partial_outputs(video_file: Path) -> None:
@@ -137,9 +158,16 @@ def _download_with_format_candidates(
         except Exception as exc:
             last_error = exc
             _remove_partial_outputs(video_file)
-            if not _is_format_unavailable(exc):
+            if _is_sign_in_required(exc):
                 continue
     if last_error:
+        msg = str(last_error)
+        if _is_sign_in_required(last_error):
+            raise RuntimeError(
+                "YouTube requires authentication for this video. "
+                "Please update your YouTube cookie in Settings → YouTube Cookie, "
+                "then try again."
+            ) from last_error
         raise last_error
 
 

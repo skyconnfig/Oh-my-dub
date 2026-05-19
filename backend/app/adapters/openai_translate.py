@@ -7,7 +7,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
-from openai import OpenAI
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    OpenAI,
+)
 from pydantic import BaseModel, Field, ValidationError
 
 from ..sources import SourceConfig
@@ -135,7 +140,7 @@ def preprocess(
         try:
             data = _call_json(client, model, "You output strict JSON only.", user)
             return PreprocessResponse.model_validate(data)
-        except (json.JSONDecodeError, ValidationError) as exc:
+        except (json.JSONDecodeError, ValidationError, APIConnectionError, APITimeoutError, APIStatusError) as exc:
             last_error = exc
             log.warning("preprocess attempt %d failed: %s", attempt + 1, exc)
     log.error("preprocess gave up, returning empty: %s", last_error)
@@ -174,7 +179,7 @@ def translate_sentence(
             if not item.dst.strip():
                 raise ValueError("empty dst")
             return _post_process(item.dst, target_language)
-        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+        except (json.JSONDecodeError, ValidationError, ValueError, APIConnectionError, APITimeoutError, APIStatusError) as exc:
             last_error = exc
             log.warning("translate attempt %d failed for %r: %s", attempt + 1, text[:60], exc)
     raise RuntimeError(f"translate_sentence failed after {TRANSLATE_RETRY} attempts: {last_error}")

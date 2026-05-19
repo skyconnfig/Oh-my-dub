@@ -162,6 +162,27 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
     return Math.round((completed / task.stages.length) * 100)
   }, [task])
 
+  const etaText = useMemo(() => {
+    if (!task?.stages?.length || task.status !== "running") return null
+    const stages = task.stages
+    const completed = stages.filter((s) => s.status === "succeeded")
+    const running = stages.filter((s) => s.status === "running")
+    const pending = stages.filter((s) => s.status === "pending")
+    if (completed.length < 1) return null
+    // average duration of completed stages (in seconds)
+    const avgMs = completed.reduce((sum, s) => {
+      if (!s.started_at || !s.completed_at) return sum
+      return sum + (new Date(s.completed_at).getTime() - new Date(s.started_at).getTime())
+    }, 0) / completed.length
+    if (avgMs <= 0) return null
+    const remaining = running.length + pending.length
+    const estSeconds = Math.round(avgMs * remaining / 1000)
+    if (estSeconds < 60) return `~${estSeconds}s`
+    const m = Math.floor(estSeconds / 60)
+    const s = estSeconds % 60
+    return `~${m}m${s.toString().padStart(2, "0")}s`
+  }, [task])
+
   if (error && !task) {
     return (
       <main className="min-h-screen bg-[linear-gradient(135deg,#fff5f5_0%,#f2fbff_48%,#fff4fa_100%)] text-foreground">
@@ -186,7 +207,12 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
               <CardTitle>{t("task.overview")}</CardTitle>
               <Badge className={statusBadgeClass(task?.status)}>{task?.status || t("task.loading")}</Badge>
             </div>
-            <Progress value={progress} />
+            <div className="flex items-center gap-3">
+              <Progress value={progress} className="flex-1" />
+              {etaText ? (
+                <span className="shrink-0 text-xs text-muted-foreground">{etaText}</span>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent>
             {task ? (

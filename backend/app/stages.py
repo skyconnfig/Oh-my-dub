@@ -11,8 +11,9 @@ class StageSpec:
     label: str
 
 
-def get_stages() -> tuple[StageSpec, ...]:
-    engine = tts_engine()
+def get_stages(engine: str | None = None) -> tuple[StageSpec, ...]:
+    if engine is None:
+        engine = tts_engine()
     return (
         StageSpec("download", "Download"),
         StageSpec("separate", "Demucs"),

@@ -163,6 +163,14 @@ ffmpeg-*/
 
 # CC-Panes workspace history
 .ccpanes/history/
+.ccpanes/config.toml
+.ccpanes/projects.csv
+
+# Model checkpoints (download externally)
+checkpoints/
+
+# TTS engine repos (separate venvs)
+CosyVoice/
 
 playground/
 models/

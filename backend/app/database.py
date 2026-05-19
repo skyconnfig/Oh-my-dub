@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .config import DB_PATH, ensure_runtime_dirs, openai_defaults, tts_engine, ytdlp_defaults
+from .config import DB_PATH, ensure_runtime_dirs, openai_defaults, tts_engine, tts_engine_label, ytdlp_defaults
 from .stages import get_stages
 
 
@@ -127,7 +127,8 @@ def fail_stale_active_tasks() -> None:
 def create_task(url: str, task_id: str | None = None) -> str:
     new_id = task_id or str(uuid.uuid4())
     created_at = now_iso()
-    stages = get_stages()
+    engine = get_setting("tts.engine", tts_engine())
+    stages = get_stages(engine)
     with connect() as conn:
         conn.execute(
             """
@@ -325,9 +326,18 @@ def get_tts_settings() -> dict[str, str]:
 
 
 def save_tts_settings(engine: str, gpt_sovits_api_url: str = "") -> None:
-    set_setting("tts.engine", engine.strip().lower())
+    engine = engine.strip().lower()
+    set_setting("tts.engine", engine)
     if gpt_sovits_api_url.strip():
         set_setting("tts.gpt_sovits_api_url", gpt_sovits_api_url.strip())
+
+    # Update TTS stage label for all pending tasks to reflect the new engine
+    label = tts_engine_label(engine)
+    with connect() as conn:
+        conn.execute(
+            "UPDATE task_stages SET label = ? WHERE name = 'tts' AND status = 'pending'",
+            (label,),
+        )
 
 
 def log_path(task_id: str) -> Path:

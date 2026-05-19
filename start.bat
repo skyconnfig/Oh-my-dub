@@ -12,17 +12,21 @@ echo Select mode:
 echo   1 - Backend only
 echo   2 - Frontend only
 echo   3 - Backend + Frontend (recommended)
-echo   4 - All (Backend + Frontend + GPT-SoVITS)
+echo   4 - Backend + Frontend + GPT-SoVITS
+echo   5 - Backend + Frontend + IndexTTS
+echo   6 - Backend + Frontend + CosyVoice
 echo   0 - Exit
 echo.
 
-set /p mode="Enter number (0-4): "
+set /p mode="Enter number (0-6): "
 
 if "%mode%"=="0" exit /b
 if "%mode%"=="1" goto backend
 if "%mode%"=="2" goto frontend
 if "%mode%"=="3" goto both
-if "%mode%"=="4" goto all
+if "%mode%"=="4" goto gptsovits
+if "%mode%"=="5" goto indextts
+if "%mode%"=="6" goto cosyvoice
 
 echo Invalid input.
 exit /b
@@ -51,7 +55,7 @@ echo Frontend: http://localhost:3000
 echo API:      http://localhost:8000/docs
 exit /b
 
-:all
+:gptsovits
 echo.
 echo [1/3] Starting backend...
 start "OhMyDub Backend" cmd /c ".venv\Scripts\uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend --reload"
@@ -66,4 +70,32 @@ echo Backend:       http://localhost:8000
 echo Frontend:      http://localhost:3000
 echo API:           http://localhost:8000/docs
 echo GPT-SoVITS:    http://localhost:9880
+exit /b
+
+:indextts
+echo.
+echo [1/3] Starting backend...
+start "OhMyDub Backend" cmd /c ".venv\Scripts\uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend --reload"
+echo [2/3] Starting frontend...
+start "OhMyDub Frontend" cmd /c "npm --prefix apps/web run dev"
+echo [3/3] IndexTTS-2 ready (bridge mode, no server needed)
+echo.
+echo Backend:       http://localhost:8000
+echo Frontend:      http://localhost:3000
+echo API:           http://localhost:8000/docs
+echo IndexTTS-2:    Select engine in Settings then create a task
+exit /b
+
+:cosyvoice
+echo.
+echo [1/3] Starting backend...
+start "OhMyDub Backend" cmd /c ".venv\Scripts\uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend --reload"
+echo [2/3] Starting frontend...
+start "OhMyDub Frontend" cmd /c "npm --prefix apps/web run dev"
+echo [3/3] CosyVoice2 ready (bridge mode, no server needed)
+echo.
+echo Backend:       http://localhost:8000
+echo Frontend:      http://localhost:3000
+echo API:           http://localhost:8000/docs
+echo CosyVoice2:    Select engine in Settings then create a task
 exit /b
