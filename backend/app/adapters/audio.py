@@ -86,25 +86,18 @@ def _combine_with_crossfade(
     if len(segments) == 1:
         return segments[0]
 
-    total_len = sum(len(s) for s in segments)
-    out = np.empty(total_len - crossfade_samples * (len(segments) - 1), dtype=np.float32)
-    pos = 0
-    out[: len(segments[0])] = segments[0]
-    pos += len(segments[0])
+    out = segments[0].copy()
     for i in range(1, len(segments)):
         prev = segments[i - 1]
         cur = segments[i]
         fade_len = min(crossfade_samples, len(prev) // 4, len(cur) // 4)
         if fade_len > 0:
-            overlap_prev = out[pos - fade_len : pos]
-            overlap_cur = cur[:fade_len]
             fade_in = np.linspace(0, 1, fade_len, dtype=np.float32)
             fade_out = np.linspace(1, 0, fade_len, dtype=np.float32)
-            out[pos - fade_len : pos] = overlap_prev * fade_out + overlap_cur * fade_in
-            out[pos : pos + len(cur) - fade_len] = cur[fade_len:]
+            out[-fade_len:] = out[-fade_len:] * fade_out + cur[:fade_len] * fade_in
+            out = np.concatenate([out, cur[fade_len:]])
         else:
-            out[pos : pos + len(cur)] = cur
-        pos += len(cur) - fade_len
+            out = np.concatenate([out, cur])
     return out
 
 
