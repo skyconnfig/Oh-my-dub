@@ -68,6 +68,6 @@ def generate_tts(translation_file: Path, vocals_dir: Path, session: Path) -> Pat
             cfg_value=float(os.getenv("VOXCPM_CFG_VALUE", "2.0")),
             inference_timesteps=int(os.getenv("VOXCPM_INFERENCE_TIMESTEPS", "10")),
         )
-        sf.write(output_file, wav, model.tts_model.sample_rate)
+        sf.write(output_file, wav, model.tts_model.sample_rate, subtype="PCM_16")
 
     return output_dir

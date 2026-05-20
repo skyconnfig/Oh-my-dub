@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import json as _json
 import os
 import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
@@ -211,7 +212,37 @@ def resume_task(task_id: str) -> dict:
     return database.get_task(task_id)
 
 
-@app.get("/api/tasks/{task_id}/log", response_class=PlainTextResponse)
+@app.post("/api/tasks/{task_id}/upload-video")
+async def upload_task_video(task_id: str, file: UploadFile = File(...)) -> dict:
+    task = database.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found.")
+    if task["status"] == "running":
+        raise HTTPException(status_code=409, detail="Cannot upload to a running task.")
+
+    video_id = extract_video_id(task["url"])
+    session = WORKFOLDER / "upload" / f"local__{video_id}"
+    media_dir = session / "media"
+    metadata_dir = session / "metadata"
+    media_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    video_path = media_dir / "video_source.mp4"
+    content = await file.read()
+    video_path.write_bytes(content)
+
+    if video_path.stat().st_size == 0:
+        raise HTTPException(status_code=422, detail="Uploaded file is empty.")
+
+    metadata = {"id": video_id, "title": file.filename or video_id, "uploader": "local"}
+    metadata_file = metadata_dir / "ytdlp_info.json"
+    metadata_file.write_text(_json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    database.update_task(task_id, session_path=str(session))
+    return database.get_task(task_id)
+
+
+@app.get("/api/tasks/{task_id}/log")
 def task_log(task_id: str) -> str:
     task = database.get_task(task_id)
     if not task:

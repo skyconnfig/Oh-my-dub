@@ -20,6 +20,7 @@ def get_stages(engine: str | None = None) -> tuple[StageSpec, ...]:
         StageSpec("asr", "Whisper"),
         StageSpec("asr_fix", "Split sentences"),
         StageSpec("translate", "Translate"),
+        StageSpec("split_translation", "Split sentences (zh)"),
         StageSpec("split_audio", "Split audio"),
         StageSpec("tts", tts_engine_label(engine)),
         StageSpec("merge_audio", "Merge audio"),

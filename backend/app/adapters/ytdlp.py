@@ -24,17 +24,12 @@ FORMAT_CANDIDATES = (
 
 SIGN_IN_ERRORS = (
     "Sign in to confirm",
-    "Requested format is not available",
     "bot",
     "login",
     "Please sign in",
 )
 
-DEFAULT_EXTRACTOR_ARGS = {
-    "youtube": {
-        "skip": ["dash", "hls"],  # skip DASH/HLS manifest check to avoid bot detection
-    },
-}
+DEFAULT_EXTRACTOR_ARGS = {}
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -79,7 +74,8 @@ def _ydl_base(source: SourceConfig, proxy_port: str = "") -> dict[str, Any]:
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
-        "js_runtimes": {"node": {}},
+        "js_runtimes": {"node": {"node": r"C:\nvm4w\nodejs\node.exe"}},
+        "remote_components": {"ejs:github"},
         "http_headers": {
             "User-Agent": DEFAULT_USER_AGENT,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -161,12 +157,17 @@ def _download_with_format_candidates(
             if _is_sign_in_required(exc):
                 continue
     if last_error:
-        msg = str(last_error)
+        msg = str(last_error).lower()
         if _is_sign_in_required(last_error):
             raise RuntimeError(
                 "YouTube requires authentication for this video. "
                 "Please update your YouTube cookie in Settings → YouTube Cookie, "
                 "then try again."
+            ) from last_error
+        if "format is not available" in msg:
+            raise RuntimeError(
+                "This video has no available formats. It may have been deleted, "
+                "made private, or is region-restricted. Please try a different video."
             ) from last_error
         raise last_error
 
@@ -188,8 +189,14 @@ def download_video(
 
     _ensure_cookie(source)
     info_opts = _ydl_base(source, proxy_port)
-    with yt_dlp.YoutubeDL(info_opts) as ydl:
+    ydl: yt_dlp.YoutubeDL | None = None
+    try:
+        ydl = yt_dlp.YoutubeDL(info_opts)
         info = ydl.extract_info(url, download=False)
+    except Exception:
+        # If info extraction fails (format issue, connection), proceed to
+        # download phase directly with minimal metadata.
+        info = {"id": video_id, "title": video_id}
 
     if str(info.get("id", video_id)) != video_id:
         raise ValueError("The resolved video id does not match the submitted URL.")
@@ -202,7 +209,15 @@ def download_video(
 
     video_file = media_dir / "video_source.mp4"
     metadata_file = metadata_dir / "ytdlp_info.json"
-    metadata_file.write_text(json.dumps(ydl.sanitize_info(info), ensure_ascii=False, indent=2), encoding="utf-8")
+    if ydl is not None:
+        metadata_file.write_text(
+            json.dumps(ydl.sanitize_info(info), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    else:
+        metadata_file.write_text(
+            json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     if video_file.exists() and video_file.stat().st_size > 0:
         return session, info

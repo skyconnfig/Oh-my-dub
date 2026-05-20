@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json as _json
+import os
 import traceback
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,6 +54,7 @@ class PipelineRunner:
             "asr": self._asr,
             "asr_fix": self._asr_fix,
             "translate": self._translate,
+            "split_translation": self._split_translation,
             "split_audio": self._split_audio,
             "tts": self._tts,
             "merge_audio": self._merge_audio,
@@ -149,6 +152,16 @@ class PipelineRunner:
         self.log(f"[{stage}] Completed")
 
     def _download(self, task: dict) -> None:
+        # If session_path already exists with a valid video file, skip yt-dlp.
+        session_path = task.get("session_path")
+        if session_path:
+            cached_video = Path(session_path) / "media" / "video_source.mp4"
+            if cached_video.exists() and cached_video.stat().st_size > 0:
+                self.artifacts.session = Path(session_path)
+                self.artifacts.video_file = cached_video
+                self.stage_message("download", f"Using local video: {cached_video}")
+                return
+
         from .adapters.ytdlp import download_video
 
         source = detect_source(task["url"])
@@ -201,7 +214,14 @@ class PipelineRunner:
 
     def _translate(self, task: dict) -> None:
         import json as _json
-        from .adapters.openai_translate import translate_asr
+
+        translate_engine = database.get_setting("translate.engine", os.getenv("TRANSLATE_ENGINE", "api"))
+        if translate_engine == "nllb":
+            from .adapters.nllb_translate import translate_asr
+            engine_label = "NLLB-200 (local)"
+        else:
+            from .adapters.openai_translate import translate_asr
+            engine_label = "OpenAI-compatible API"
 
         session = _require(self.artifacts.session, "session")
         asr_file = _require(self.artifacts.asr_fixed_file, "asr_fixed_file")
@@ -209,13 +229,26 @@ class PipelineRunner:
         source = detect_source(task["url"])
         self.stage_message(
             "translate",
-            f"Using model {settings['model']} at {settings['base_url']} ({source.asr_language}->{source.target_language})",
+            f"{engine_label} ({source.asr_language}->{source.target_language})",
         )
         self.artifacts.translation_file = translate_asr(asr_file, session, settings, source)
         items = _json.loads(self.artifacts.translation_file.read_text(encoding="utf-8"))["translation"]
         self.stage_message(
             "translate",
             f"Translated {len(items)} sentences -> {self.artifacts.translation_file.name}",
+        )
+
+    def _split_translation(self, task: dict) -> None:
+        from .adapters.split_translation import split_translation
+
+        session = _require(self.artifacts.session, "session")
+        translation_file = _require(self.artifacts.translation_file, "translation_file")
+        before = len(_json.loads(translation_file.read_text(encoding="utf-8"))["translation"])
+        split_translation(translation_file)
+        after = len(_json.loads(translation_file.read_text(encoding="utf-8"))["translation"])
+        self.stage_message(
+            "split_translation",
+            f"Split {before} -> {after} Chinese segments for natural TTS pacing",
         )
 
     def _split_audio(self, _: dict) -> None:

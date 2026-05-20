@@ -30,7 +30,11 @@ def _resolve_cosyvoice_root() -> Path:
 
 
 def _cosyvoice_python(cosyvoice_root: Path) -> str:
-    """Path to the Python interpreter inside the CosyVoice venv."""
+    """Path to the Python interpreter (uses root .venv to avoid duplicate torch)."""
+    repo_root = cosyvoice_root.parent
+    root_venv = repo_root / ".venv" / "Scripts" / "python.exe"
+    if root_venv.is_file():
+        return str(root_venv)
     venv_python = cosyvoice_root / "venv" / "Scripts" / "python.exe"
     if venv_python.is_file():
         return str(venv_python)
@@ -53,7 +57,7 @@ def generate_tts(translation_file: Path, vocals_dir: Path, session: Path) -> Pat
     data = json.loads(translation_file.read_text(encoding="utf-8"))
     translation = data["translation"]
 
-    model_dir = os.getenv("COSYVOICE_MODEL_DIR", "iic/CosyVoice2-0.5B")
+    model_dir = os.getenv("COSYVOICE_MODEL_DIR", r"D:\AI\YouDub-webui\checkpoints\CosyVoice-300M")
     use_fp16 = os.getenv("COSYVOICE_FP16", "true").lower() == "true"
     batch_timeout = int(os.getenv("COSYVOICE_TIMEOUT", "600"))
 
@@ -97,7 +101,7 @@ def generate_tts(translation_file: Path, vocals_dir: Path, session: Path) -> Pat
         "model_dir": model_dir,
         "segments": segments,
         "fp16": use_fp16,
-        "load_jit": True,
+        "load_jit": False,
     }
 
     with tempfile.NamedTemporaryFile(

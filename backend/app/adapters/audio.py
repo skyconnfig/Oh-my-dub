@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import wave
 from pathlib import Path
 
 import librosa
@@ -132,6 +133,15 @@ def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tup
     for path in tts_files:
         if not path.exists():
             raise FileNotFoundError(f"Missing TTS segment: {path}")
+        # Convert float WAV to PCM_16 if needed (Python's wave module and
+        # audiostretchy don't support IEEE float format, raising "unknown format: 3").
+        try:
+            with wave.open(str(path), "r") as wf:
+                if wf.getsampwidth() != 2:
+                    raise ValueError("not PCM_16")
+        except Exception:
+            y_convert, sr_convert = librosa.load(str(path), sr=None)
+            sf.write(str(path), y_convert, sr_convert, subtype="PCM_16")
 
     _, sample_rate = _audio_duration(tts_files[0])
     base = _base_speed_factor(translation, tts_files)
@@ -161,7 +171,7 @@ def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tup
     raw_audio = _combine_with_crossfade(final_segments, sample_rate, crossfade_samples)
     normalized = _normalize_rms(raw_audio, TARGET_RMS)
 
-    sf.write(str(dubbing_file), normalized, sample_rate)
+    sf.write(str(dubbing_file), normalized, sample_rate, subtype="PCM_16")
     timings_file.write_text(
         json.dumps({"translation": translation}, ensure_ascii=False, indent=2),
         encoding="utf-8",
