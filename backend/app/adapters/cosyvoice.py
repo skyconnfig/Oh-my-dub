@@ -98,7 +98,7 @@ def generate_tts(translation_file: Path, vocals_dir: Path, session: Path) -> Pat
     output_dir.mkdir(parents=True, exist_ok=True)
 
     cosyvoice_root = _resolve_cosyvoice_root()
-    bridge = cosyvoice_root / "_cosyvoice_bridge.py"
+    bridge = Path(__file__).resolve().parent / "cosyvoice_bridge.py"
     if not bridge.is_file():
         raise RuntimeError(f"Bridge script not found: {bridge}")
 
@@ -160,6 +160,7 @@ def generate_tts(translation_file: Path, vocals_dir: Path, session: Path) -> Pat
         "segments": [],  # filled per chunk
         "fp16": use_fp16,
         "load_jit": False,
+        "cosyvoice_root": str(cosyvoice_root.resolve()),
     }
     if nfe is not None:
         base_request["nfe"] = int(nfe)
