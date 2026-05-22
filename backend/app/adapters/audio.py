@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import wave
 from pathlib import Path
 
@@ -18,6 +19,9 @@ LOCAL_FACTOR_MAX = 1.08
 SPEED_NOOP_EPSILON = 2e-2
 CROSSFADE_MS = 30
 TARGET_RMS = 0.12
+TRUNCATION_WARN_THRESHOLD = 0.1  # warn if >10% of audio is discarded
+
+logger = logging.getLogger(__name__)
 
 
 def split_audio_by_translation(vocals_file: Path, translation_file: Path, session: Path) -> Path:
@@ -62,7 +66,20 @@ def _stretch_segment(audio_file: Path, ratio: float, target_sec: float, cache_di
     out_path = cache_dir / audio_file.name
     stretch_audio(str(audio_file), str(out_path), ratio=ratio)
     y, sr = librosa.load(str(out_path), sr=None)
-    return y[: int(target_sec * sr)], sr
+    actual_sec = len(y) / sr
+    allowed_samples = int(target_sec * sr)
+    if actual_sec > target_sec * (1.0 + TRUNCATION_WARN_THRESHOLD):
+        excess_ms = int((actual_sec - target_sec) * 1000)
+        logger.warning(
+            "Audio truncated: %s loses %dms (%.0f%% over target %.1fs, actual %.1fs, ratio=%.3f)",
+            audio_file.name,
+            excess_ms,
+            (actual_sec / target_sec - 1) * 100,
+            target_sec,
+            actual_sec,
+            ratio,
+        )
+    return y[:allowed_samples], sr
 
 
 def _local_factor(current_sec: float, base: float, desired_sec: float) -> float:
@@ -142,6 +159,7 @@ def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tup
 
     final_segments: list[np.ndarray] = []
     last_end_ms = 0.0
+    truncation_count = 0
     for segment, tts_file in zip(translation, tts_files):
         current_pos_ms = sum(len(s) for s in final_segments) / sample_rate * 1000.0
         real_start_ms = max(float(segment["start_time"]), current_pos_ms)
@@ -154,12 +172,22 @@ def merge_tts_audio(translation_file: Path, tts_dir: Path, session: Path) -> tup
         speed = base * _local_factor(current_sec, base, desired_sec)
         target_sec = current_sec * speed
         y, _ = _stretch_segment(tts_file, speed, target_sec, cache_dir)
+        if len(y) < current_sec * sample_rate * 0.9:
+            truncation_count += 1
 
         adjusted_sec = len(y) / sample_rate
         real_end_ms = max(real_start_ms + adjusted_sec * 1000.0, float(segment["end_time"]))
         final_segments.append(y)
         segment["actual_start_time"] = int(real_start_ms)
         segment["actual_end_time"] = int(real_end_ms)
+
+    if truncation_count > 0:
+        logger.warning(
+            "%d/%d segments were truncated (audio cut off). "
+            "Consider enabling the split_translation stage or using shorter translations.",
+            truncation_count,
+            len(translation),
+        )
 
     raw_audio = _combine_with_crossfade(final_segments, sample_rate, crossfade_samples)
     normalized = _normalize_rms(raw_audio, TARGET_RMS)
