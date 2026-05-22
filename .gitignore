@@ -171,6 +171,10 @@ checkpoints/
 
 # TTS engine repos (separate venvs)
 CosyVoice/
+MeloTTS/
+
+# Claude Code session data
+.claude/
 
 playground/
 models/

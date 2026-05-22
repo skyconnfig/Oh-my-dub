@@ -60,7 +60,7 @@ def tts_engine() -> str:
 
 
 def tts_engine_label(engine: str | None = None) -> str:
-    labels = {"voxcpm": "VoxCPM", "gpt_sovits": "GPT-SoVITS", "indextts": "IndexTTS", "cosyvoice": "CosyVoice2"}
+    labels = {"voxcpm": "VoxCPM", "gpt_sovits": "GPT-SoVITS", "indextts": "IndexTTS", "cosyvoice": "CosyVoice2", "supertonic": "SuperTonic", "melo": "MeloTTS"}
     return labels.get(engine or tts_engine(), engine or tts_engine())
 
 

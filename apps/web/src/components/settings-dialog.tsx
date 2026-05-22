@@ -217,6 +217,8 @@ export function SettingsDialog() {
                     <SelectItem value="gpt_sovits">{t("settings.ttsGptSovits")}</SelectItem>
                     <SelectItem value="indextts">{t("settings.ttsIndexTts")}</SelectItem>
                     <SelectItem value="cosyvoice">{t("settings.ttsCosyVoice")}</SelectItem>
+                    <SelectItem value="supertonic">{t("settings.ttsSuperTonic")}</SelectItem>
+                    <SelectItem value="melo">{t("settings.ttsMelo")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

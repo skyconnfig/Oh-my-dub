@@ -268,6 +268,10 @@ class PipelineRunner:
             from .adapters.indextts import generate_tts
         elif engine == "cosyvoice":
             from .adapters.cosyvoice import generate_tts
+        elif engine == "supertonic":
+            from .adapters.supertonic import generate_tts
+        elif engine == "melo":
+            from .adapters.melo import generate_tts
         else:
             from .adapters.voxcpm import generate_tts
 
