@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
 from openai import (
     APIConnectionError,
-    APIStatusError,
     APITimeoutError,
+    APIStatusError,
+    RateLimitError,
     OpenAI,
 )
 from pydantic import BaseModel, Field, ValidationError
@@ -21,10 +24,16 @@ from ._translate_prompts import PREPROCESS_PROMPT, TRANSLATE_RULES
 log = logging.getLogger(__name__)
 
 API_SETTING_KEYS = ("base_url", "api_key", "model")
-PREPROCESS_RETRY = 2
-TRANSLATE_RETRY = 2
+PREPROCESS_RETRY = 3
+TRANSLATE_RETRY = 4
 DESCRIPTION_LIMIT = 500
-DEFAULT_CONCURRENCY = 50
+DEFAULT_CONCURRENCY = 20
+
+# Rate limit backoff parameters
+_INITIAL_BACKOFF = 2.0  # seconds
+_MAX_BACKOFF = 120.0    # seconds
+_BACKOFF_JITTER = 0.5   # ±50% jitter
+_REQUEST_JITTER = (0.1, 0.3)  # random delay before each request (min, max)
 
 
 class HotwordItem(BaseModel):
@@ -66,6 +75,31 @@ def _client(base_url: str, api_key: str) -> OpenAI:
     if not api_key:
         raise ValueError("OpenAI API key is not configured.")
     return OpenAI(api_key=api_key, base_url=base_url)
+
+
+def _rate_limit_backoff(attempt: int, response_headers: dict[str, str] | None = None) -> float:
+    """Compute backoff delay with jitter for rate-limited requests.
+
+    Respects Retry-After / X-RateLimit-Reset headers when available,
+    otherwise uses exponential backoff.
+    """
+    # Prefer server-provided retry-after
+    if response_headers:
+        for header in ("retry-after", "Retry-After", "x-ratelimit-reset", "X-RateLimit-Reset"):
+            raw = response_headers.get(header, "").strip()
+            if raw:
+                try:
+                    retry_after = int(raw)
+                    # If it's a large Unix ms timestamp, convert to seconds
+                    if retry_after > 100000000000:
+                        retry_after = max(1, (retry_after / 1000) - time.time())
+                    return max(1.0, float(retry_after)) + random.uniform(0, 2)
+                except (ValueError, TypeError):
+                    pass
+    # Exponential backoff with jitter
+    delay = _INITIAL_BACKOFF * (2 ** attempt)
+    jitter = delay * _BACKOFF_JITTER
+    return min(delay + random.uniform(-jitter, jitter), _MAX_BACKOFF)
 
 
 _JSON_BLOCK_RE = re.compile(r"\{.*\}", re.DOTALL)
@@ -138,8 +172,19 @@ def preprocess(
     last_error: Exception | None = None
     for attempt in range(PREPROCESS_RETRY + 1):
         try:
+            time.sleep(random.uniform(*_REQUEST_JITTER))
             data = _call_json(client, model, "You output strict JSON only.", user)
             return PreprocessResponse.model_validate(data)
+        except RateLimitError as exc:
+            last_error = exc
+            headers = None
+            try:
+                headers = dict(exc.response.headers) if hasattr(exc, "response") and exc.response else None
+            except Exception:
+                pass
+            delay = _rate_limit_backoff(attempt, headers)
+            log.warning("preprocess rate limited (attempt %d), waiting %.1fs", attempt + 1, delay)
+            time.sleep(delay)
         except (json.JSONDecodeError, ValidationError, APIConnectionError, APITimeoutError, APIStatusError) as exc:
             last_error = exc
             log.warning("preprocess attempt %d failed: %s", attempt + 1, exc)
@@ -172,17 +217,34 @@ def translate_sentence(
     system: str,
 ) -> str:
     last_error: Exception | None = None
-    for attempt in range(TRANSLATE_RETRY):
+    max_attempts = TRANSLATE_RETRY + 2  # extra attempts for rate limits
+    for attempt in range(max_attempts):
         try:
+            # Spread requests across threads to reduce collision on rate limits
+            jitter = random.uniform(*_REQUEST_JITTER) * (attempt + 1)
+            time.sleep(jitter)
             data = _call_json(client, model, system, text)
             item = TranslationItem.model_validate(data)
             if not item.dst.strip():
                 raise ValueError("empty dst")
             return _post_process(item.dst, target_language)
+        except RateLimitError as exc:
+            last_error = exc
+            headers = None
+            try:
+                headers = dict(exc.response.headers) if hasattr(exc, "response") and exc.response else None
+            except Exception:
+                pass
+            delay = _rate_limit_backoff(attempt, headers)
+            log.warning(
+                "rate limited (attempt %d/%d), waiting %.1fs: %s",
+                attempt + 1, max_attempts, delay, text[:40],
+            )
+            time.sleep(delay)
         except (json.JSONDecodeError, ValidationError, ValueError, APIConnectionError, APITimeoutError, APIStatusError) as exc:
             last_error = exc
             log.warning("translate attempt %d failed for %r: %s", attempt + 1, text[:60], exc)
-    raise RuntimeError(f"translate_sentence failed after {TRANSLATE_RETRY} attempts: {last_error}")
+    raise RuntimeError(f"translate_sentence failed after {max_attempts} attempts: {last_error}")
 
 
 def translate_batch(
